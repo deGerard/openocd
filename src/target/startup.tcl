@@ -80,6 +80,10 @@ proc ocd_process_reset_inner { MODE } {
 	foreach t $targets {
 		$t invoke-event reset-assert-pre
 	}
+	if { $halt } {
+		set resetvector [mrw 0x0805E404]
+		bp $resetvector 2 hw
+	}
 	foreach t $targets {
 		# C code needs to know if we expect to 'halt'
 		if {![using_jtag] || [jtag tapisenabled [$t cget -chain-position]]} {
@@ -110,6 +114,9 @@ proc ocd_process_reset_inner { MODE } {
 	# first executing any instructions.
 	if { $halt } {
 		foreach t $targets {
+			if { $halt } {
+				$t arp_halt
+			}
 			if {[using_jtag] && ![jtag tapisenabled [$t cget -chain-position]]} {
 				continue
 			}
@@ -146,6 +153,7 @@ proc ocd_process_reset_inner { MODE } {
 				return -code error [format "TARGET: %s - Not halted" $t]
 			}
 		}
+		rbp $resetvector
 	}
 
 	#Pass 2 - if needed "init"
